@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+
+<!--Calculate color algorithm borrowed from http://www.tannerhelland.com/4435/convert-temperature-rgb-algorithm-code/-->
+<!--Mandelbrot algorithm adapted from https://en.wikipedia.org/wiki/Mandelbrot_set-->
+
+<html>
+<head>
+	<meta charset="utf-8" />
+	<title>Relaxing Idle</title>
+	<style>
+		/* <!--Overall button style--> */
+		.bgen {
+			-webkit-border-top-left-radius:10px;
+			-moz-border-radius-topleft:10px;
+			border-top-left-radius:10px;
+			-webkit-border-top-right-radius:10px;
+			-moz-border-radius-topright:10px;
+			border-top-right-radius:10px;
+			-webkit-border-bottom-right-radius:10px;
+			-moz-border-radius-bottomright:10px;
+			border-bottom-right-radius:10px;
+			-webkit-border-bottom-left-radius:10px;
+			-moz-border-radius-bottomleft:10px;
+			border-bottom-left-radius:10px;
+			background-color: #e7e7e7;
+			border: outset;
+			color: black;
+			padding: 4px 4px;
+			text-align: center;
+			text-decoration: none;
+			display: inline-block;
+			font-size: 16px;
+			font-family: Georgia;
+			margin: 4px 2px;
+			cursor: pointer;
+			width: 200px;
+		}
+		
+		.bups {
+			-webkit-border-top-left-radius:5px;
+			-moz-border-radius-topleft:5px;
+			border-top-left-radius:5px;
+			-webkit-border-top-right-radius:5px;
+			-moz-border-radius-topright:5px;
+			border-top-right-radius:5px;
+			-webkit-border-bottom-right-radius:5px;
+			-moz-border-radius-bottomright:5px;
+			border-bottom-right-radius:5px;
+			-webkit-border-bottom-left-radius:5px;
+			-moz-border-radius-bottomleft:5px;
+			border-bottom-left-radius:5px;
+			background-color: #e7e7e7;
+			border: outset;
+			color: black;
+			padding: 0px 0px;
+			text-align: center;
+			text-decoration: none;
+			display: inline-block;
+			font-size: 16px;
+			font-family: Georgia;
+			margin: 0px 0px;
+			cursor: pointer;
+			width: 200px;
+		}
+		
+		.brst {
+			background-color: #e7e7e7;
+			border: outset;
+			color: black;
+			padding: 1px 1px;
+			text-align: center;
+			text-decoration: none;
+			display: inline-block;
+			font-size: 11px;
+			margin: 1px 1px;
+			cursor: pointer;
+			width: 75px;
+		}
+		/* <!--Individual button style/size--> */
+		.bclick{position:absolute; left:820px; top:20px;}
+		.bclick:active{border: inset;}
+		.bgen1{position:absolute; left:820px; top:100px;}
+		.bgen1:active{border: inset;}
+		.bupg1{position:absolute; left:820px; top:240px;}
+		.bupg1:active{border: inset;}
+		.bunl1{position:absolute; left:820px; top:320px;}
+		.bunl1:active{border: inset;}
+		.brst1{position:absolute; left:953px; top:608px;}
+		.brst1:active{border: inset;}
+		.bimgupg2{position:absolute; left:820px; top:400px;}
+		.bimgupg2:active{border: inset;}
+		.bsndclr2{position:absolute; left:590px; top:435px;}
+		.bsndclr2:active{border: inset;}
+		.bcolor{position:absolute; left:590px; top:405px;}
+		.bcolor:active{border: inset;}
+		.bsndmet2{position:absolute; left:312px; top:435px;}
+		.bsndmet2:active{border: inset;}
+		.bspeed{position:absolute; left:28px; top:435px;}
+		.bspeed:active{border: inset;}
+		
+		.bfraclife2{position:absolute; left:28px; top:405px;}
+		.bfraclife2:active{border: inset;}
+		.brules2{position:absolute; left:312px; top:405px;}
+		.brules2:active{border: inset;}
+	</style>
+</head>
+	
+<body>
+	<script src="chs.js"></script>
+	<script src="core.js"></script>
+	<canvas id="backCanvas" width="1024" height="630" onclick="sndclick(event, backCanvas)" style="border:1px solid #000000;"> </canvas>
+	<p id="totalimage" style="font-size:12px"></p>
+
+	<!--Place buttons and stuff-->
+	<button id="click" class="bgen bclick">Generate Pixel</button>
+	<button id="gen1" class="bgen bgen1">Auto Generate</button>
+	<button id="upg1" class="bgen bupg1">Upgrade Generator</button>
+	<button id="unl1" class="bgen bunl1">Unlock Music</button>
+	<button id="breset" class="brst brst1">Reset Save</button>
+	<button id="bimgupg2" class="bgen bimgupg2">Upgrade Image</button>
+	<button id="bsndclear" class="bups bsndclr2">Clear All</button>
+	<button id="bsndmet" class="bups bsndmet2">Metronome is On</button>
+	<button id="bchngcolor" class="bups bcolor">Color is Red</button>
+	<button id="bsndspeed" class="bups bspeed">Speed is Normal</button>
+	<button id="bfraclife" class="bups bfraclife2">Fractal is On</button>
+	<button id="brules" class="bups brules2">Rule 23/3</button>
+		
+	<!--This is where Javascript stuff goes-->
+	<script type="text/javascript">
+		var pxs, pps, img, pxsold, pxsnew;
+		var autogenvis, gencost, genbase, genamnt, pixnum;
+		var upgvis, upgcost, upgbase, clickamnt, upgamnt;
+		var sndcost, fracdata, ppslimit, fraclife, lifecnt;
+		var nx, ny, mult, up, dn, imps, lsvtme, svcnt;
+		var metro, octave, colorset, totimg;
+		var fracarray = [];
+		var soundarray = [];
+		var lifearray = [];
+		var lifearray1 = [];
+		var soundarrayreset = 0;
+		
+		//Set canvas and font properties
+		var c=document.getElementById("backCanvas");
+		var ctx=c.getContext("2d");
+		var audioCtx = new (window.AudioContext || window.webkitAudioContext || window.audioContext);
+		var context = new AudioContext();
+		
+		//For Audio
+		var sndcnt, sndcntbig, sndupg, sndspd;
+		sndspd = 16;
+		sndcnt = 0;
+		sndcntbig = 0;
+		sndupg = 0;
+		sndcost = 7500;
+		metro = 1;
+		octave = 0;
+		for (soundarrayreset = 0; soundarrayreset < 33; soundarrayreset++) {soundarray[soundarrayreset] = 100000};
+		
+		//For Image Upgrade
+		var imgupg, imgcost;
+		imgupg = 0;
+		imgcost = 7500;
+		
+		//Draw inner boxes for fractal design area and sound area
+		ctx.strokeRect(2,2,800,392);
+		ctx.strokeRect(2,393,800,204);
+		
+		//These variables are unaffected by saving and loading
+		ppslimit = 8384;
+		svcnt = 0;
+		colorset = 1;
+		fraclife = 0;
+		lifecnt = 0;
+		
+		//Fractal variables
+		var pixarray = [];
+		var pixarrcnt;
+		nx = 0.0;
+		ny = 1.0;
+		multx = 0.01;
+		multy = 0.01;
+		up = 0.005;
+		dn = -0.005;
+		
+		//Game of life variables
+		var rule = 1;
+		var alive = 0;
+		var aliverule = 1;
+		var lifecnt = 0;
+		document.getElementById("brules").style.color = "grey";
+		
+		//Percent complete bar
+		ctx.strokeRect(2,602,800,25);
+		ctx.font = "16px Georgia";
+		ctx.fillText("完成百分比: ", 10, 620);
+		totimg = 0;
+		
+		//Do this when the window loads
+		window.onload = function() {
+			//Load savegame
+			if (!!localStorage.getItem("relaxsave")) {
+				var savegame = JSON.parse(localStorage.getItem("relaxsave"))
+
+				if (typeof savegame.ppso !== "undefined") pps = savegame.ppso;
+				if (typeof savegame.pxso !== "undefined") pxs = savegame.pxso;
+				if (typeof savegame.imgo !== "undefined") img = savegame.imgo;
+				if (typeof savegame.autogenviso !== "undefined") autogenvis = savegame.autogenviso;
+				if (typeof savegame.upgviso !== "undefined") upgvis = savegame.upgviso;
+				if (typeof savegame.genamnto !== "undefined") genamnt = savegame.genamnto;
+				if (typeof savegame.upgamnto !== "undefined") upgamnt = savegame.upgamnto;
+				if (typeof savegame.genbaseo !== "undefined") genbase = savegame.genbaseo;
+				if (typeof savegame.upgbaseo !== "undefined") upgbase = savegame.upgbaseo;
+				if (typeof savegame.gencosto !== "undefined") gencost = savegame.gencosto;
+				if (typeof savegame.upgcosto !== "undefined") upgcost = savegame.upgcosto;
+				if (typeof savegame.clickamnto !== "undefined") clickamnt = savegame.clickamnto;
+				if (typeof savegame.sndupgo !== "undefined") sndupg = savegame.sndupgo;
+				if (typeof savegame.sndcosto !== "undefined") sndcost = savegame.sndcosto;
+				if (typeof savegame.imgupgo !== "undefined") imgupg = savegame.imgupgo;
+				if (typeof savegame.imgcosto !== "undefined") imgcost = savegame.imgcosto;
+				if (typeof savegame.totimgo !== "undefined") totimg = savegame.totimgo;
+				
+				var dte = new Date();
+				lsvtme = ("0"+dte.getHours()).slice(-2) + ":" + ("0"+dte.getMinutes()).slice(-2) + ":" + ("0"+dte.getSeconds()).slice(-2);
+			} else {
+				reset();
+			};
+			
+			pxsnew = 0;
+			pxsold = pxs;
+			pixnum = 0;
+			if (sndupg >= 1) {drawaudio()};
+			drawfrac();
+		};
+		
+		//Reset all variables
+		function reset(){
+			ctx.clearRect(3, 3, 799, 390);
+			ctx.clearRect(3, 394, 798, 198);
+			pps = 0;
+			pxs = 0;
+			img = 0;
+			autogenvis = 0;
+			upgvis = 0;
+			genamnt = 0;
+			upgamnt = 0;
+			genbase = 20;
+			upgbase = 30;
+			gencost = genbase;
+			upgcost = upgbase;
+			clickamnt = 1;
+			pixnum = 0;
+			totimg = 0;
+			sndupg = 0;
+			sndcnt = 0;
+			sndcntbig = 0;
+			sndcost = 7500;
+			imgupg = 0;
+			imgcost = 7500;
+			metro = 1;
+			octave = 0;
+			var dte = new Date();
+			lsvtme = ("0"+dte.getHours()).slice(-2) + ":" + ("0"+dte.getMinutes()).slice(-2) + ":" + ("0"+dte.getSeconds()).slice(-2);
+			for (soundarrayreset = 0; soundarrayreset < 33; soundarrayreset++) {soundarray[soundarrayreset] = 100000};
+		};
+		
+		//Update stuff
+		function update(){
+			//Autosave
+			if (svcnt > 10) {autosave()};
+			if (pxs > 999999999999999) {pxs = 999999999999999};
+			if (img > 99999999999999) {img = 99999999999999};
+			
+			//Generate Pixel button
+			click.onclick = function() {
+				pxs = pxs + clickamnt;
+				if (pxs < ppslimit) {
+					pxsnew = pxs;
+					drawpixels();
+				} else {
+					if (clickamnt > 20000) {
+						if (fraclife == 0) {
+							drawfrac();
+						} else if (fraclife == 1) {
+							newlife();
+							//gameoflife();
+						};
+					};
+					if (clickamnt > ppslimit) {
+						img = img + Math.round(clickamnt/8384)
+						totimg = totimg + Math.round(clickamnt/8384)
+					};
+				};
+			};
+			
+			//Increment number of pixels
+			pxs = pxs + (pps / 60);
+			svcnt = svcnt + (1 / 60);
+			
+			//Calculate pixels earned when off focus
+			window.onblur = function() {tme = new Date().getTime()};
+			window.onfocus = function() {
+				if (tme > 0) {
+					pxs = pxs + (pps * ((new Date().getTime() - tme)/1000));
+					tme = 0;
+					if (pxs - pxsold > 8384) {
+						img = img + Math.round(((pxs - pxsold)/8384));
+						totimg = totimg + Math.round(((pxs - pxsold)/8384));
+						pxsold = pxs;
+					};
+				};
+			};
+			
+			//Count up the counter to slow down life (confusing huh)
+			lifecnt = lifecnt + 1;
+			
+			//Draw pixels
+			if (Math.round(pxs) > Math.round(pxsold) && pps < ppslimit) {
+				pxsnew = pxs;
+				drawpixels();
+			} else if (pps < 503000 && Math.round(pxs) > (Math.round(pxsold) + ppslimit)) {
+				if (fraclife == 0) {
+					drawfrac();
+				} else if (fraclife == 1) {
+					pxsold = pxs;
+					if (lifecnt > 10) {
+						gameoflife();
+						lifecnt = 0;
+					};
+				};
+				//img = img + 1;
+				img = img + (Math.round(pps/8384));
+				totimg = totimg + (Math.round(pps/8384));
+			} else if (pps > 503000) {
+				if (fraclife == 0) {
+					drawfrac();
+				} else if (fraclife == 1) {
+					pxsold = pxs;
+					if (lifecnt > 10) {
+						gameoflife();
+						lifecnt = 0;
+					};
+				};
+				img = img + (Math.round(pps/8384));
+				totimg = totimg + Math.round(((pxs - pxsold)/8384));
+			};
+			
+			//Purchase auto generator
+			gen1.onclick = function() {
+				if (pxs >= gencost) {
+					genamnt = genamnt + 1;
+					pxs = pxs - gencost;
+					pxsold = pxs;
+					pps = pps + Math.round(Math.pow(1.10, genamnt));
+					gencost = Math.round(genbase * (Math.pow(1.15, genamnt)));
+				};
+			};
+			
+			//Purchase generator upgrades
+			upg1.onclick = function() {
+				if (pxs >= upgcost) {
+					upgamnt = upgamnt + 1;
+					pxs = pxs - upgcost;
+					pxsold = pxs;
+					upgcost = Math.round(upgbase * (Math.pow(1.15, upgamnt)));
+					clickamnt = clickamnt + Math.round(Math.pow(1.10, upgamnt));
+				};
+			};
+			
+			//Unlock and upgrade music
+			unl1.onclick = function() {
+				if (img >= sndcost && sndupg == 0) {
+					img = img - sndcost;
+					sndupg = 1;
+					sndcost = sndcost * 1.75;
+					drawaudio();
+				};
+				if (sndupg < 3 && img >= sndcost) {
+					sndupg = sndupg + 1;
+					img = img - sndcost;
+					sndcost = sndcost * 2.1;
+					drawaudio();
+				};
+			};
+			
+			//Upgrade image
+			bimgupg2.onclick = function() {
+				if (img >= imgcost && imgupg == 0) {
+					img = img - imgcost;
+					imgupg = 1;
+					imgcost = imgcost * 1.75;
+				};
+				if (imgupg < 2 && img >= imgcost) {
+					imgupg = imgupg + 1;
+					img = img - imgcost;
+					imgcost = imgcost * 2.1;
+				};
+			};
+
+			//Reset save button
+			breset.onclick = function() {
+				localStorage.removeItem("relaxsave");
+				reset();
+				drawfrac();
+			};
+			
+			//Clear audio thing out
+			bsndclear.onclick = function() {
+				for (soundarrayreset = 0; soundarrayreset < 33; soundarrayreset++) {soundarray[soundarrayreset] = 100000};
+				drawaudio();
+			};
+			
+			//Turn metronome on/off
+			bsndmet.onclick = function() {
+				ctx.clearRect(6, 448, 794, 26);
+				if (metro == 1) {
+					metro = 0;
+					document.getElementById("bsndmet").innerHTML = "Metronome is Off";
+				} else {
+					metro = 1;
+					document.getElementById("bsndmet").innerHTML = "Metronome is On";
+				};
+			};
+			
+			//Change Color
+			bchngcolor.onclick = function() {
+				if (fraclife == 0) {
+					colorset = colorset * -1;
+					if (colorset > 0) {document.getElementById("bchngcolor").innerHTML = "Color is Red"};
+					if (colorset < 0) {document.getElementById("bchngcolor").innerHTML = "Color is Green"};
+				};
+			};
+			
+			//Switch between Life and Fractal
+			bfraclife.onclick = function() {
+				if (fraclife == 0) {
+					newlife();
+					fraclife = 1;
+					document.getElementById("bfraclife").innerHTML = "Life is On";
+					document.getElementById("click").innerHTML = "Generate/New Life";
+					document.getElementById("bchngcolor").style.color = "grey";
+					document.getElementById("brules").style.color = "black";
+				} else {
+					var i;
+					for (i = 0; i < pixarray.length; i++) {pixarray[i] = 0};     //UNCOMMENT THIS TO GET RID OF WERID PHASE IN THING
+					fraclife = 0;
+					document.getElementById("bfraclife").innerHTML = "Fractal is On";
+					document.getElementById("click").innerHTML = "Generate Pixel";
+					document.getElementById("bchngcolor").style.color = "black";
+					document.getElementById("brules").style.color = "grey";
+				};
+			};
+			
+			//Change Life rules
+			brules.onclick = function() {
+				if (fraclife == 1) {
+					rule = rule + 1;
+					if (rule > 8) {rule = 1};
+					if (rule == 1) {document.getElementById("brules").innerHTML = "Rule 23/3";};
+					if (rule == 2) {document.getElementById("brules").innerHTML = "Rule 01358/357";};
+					if (rule == 3) {document.getElementById("brules").innerHTML = "Rule 234/3";};
+					if (rule == 4) {document.getElementById("brules").innerHTML = "Rule 235678/3678";};
+					if (rule == 5) {document.getElementById("brules").innerHTML = "Rule 245/3";};
+					if (rule == 6) {document.getElementById("brules").innerHTML = "Rule 23/36";};
+					if (rule == 7) {document.getElementById("brules").innerHTML = "Rule 456/35678";};
+					if (rule == 8) {document.getElementById("brules").innerHTML = "Alive";};
+				};
+			};
+			
+			//Change Speed
+			bsndspeed.onclick = function() {
+				if (sndspd == 8) {
+					sndspd = 32;
+					document.getElementById("bsndspeed").innerHTML = "Speed is Slow";
+				} else if (sndspd == 32) {
+					sndspd = 16;
+					document.getElementById("bsndspeed").innerHTML = "Speed is Normal";
+				} else if (sndspd == 16) {
+					sndspd = 8;
+					document.getElementById("bsndspeed").innerHTML = "Speed is Fast";
+				};
+			};	
+		};
+		
+		function cansee() {
+			//Make Upgrade Button and text visible/hidden
+			if (pxs < (upgcost * 0.75) && upgvis == 0) {document.getElementById("upg1").style.visibility = 'hidden'};
+			if (pxs >= (upgcost * 0.75) && upgvis == 0) {
+				document.getElementById("upg1").style.visibility = 'visible';
+				upgvis = 1;
+			};
+			if (pxs >= upgcost) {
+				document.getElementById("upg1").style.color = "black";
+			} else {
+				document.getElementById("upg1").style.color = "grey";
+			};
+			
+			//Make Unlock Sound Button and text visible/hidden
+			if (img < (sndcost * 0.65) && sndupg == 0) {document.getElementById("unl1").style.visibility = 'hidden'};
+			if (img >= (sndcost * 0.65) && sndupg == 0) {document.getElementById("unl1").style.visibility = 'visible'};
+			if (sndupg == 3 || img < sndcost) {
+				document.getElementById("unl1").style.color = "grey";
+			} else {
+				document.getElementById("unl1").style.color = "black";
+			};
+			
+			//Make Generator Button and text visible/hidden
+			if (pxs < (gencost * 0.75) && autogenvis == 0) {document.getElementById("gen1").style.visibility = 'hidden'};
+			if (pxs >= (gencost * 0.75) && autogenvis == 0) {
+				document.getElementById("gen1").style.visibility = 'visible';
+				autogenvis = 1;
+			};
+			if (pxs >= gencost) {
+				document.getElementById("gen1").style.color = "black";
+			} else {
+				document.getElementById("gen1").style.color = "grey";
+			};
+			
+			//Make image upgrade button text visible/hidden
+			if (imgupg > 0) {
+				document.getElementById("bchngcolor").style.visibility = 'visible';
+			} else {
+				document.getElementById("bchngcolor").style.visibility = 'hidden';
+			};
+			if (imgupg > 1) {
+				document.getElementById("brules").style.visibility = 'visible';
+				document.getElementById("bfraclife").style.visibility = 'visible';
+			} else {
+				document.getElementById("brules").style.visibility = 'hidden';
+				document.getElementById("bfraclife").style.visibility = 'hidden';
+			};
+			
+			//Make image upgrade text gray/black
+			if (imgupg == 2 || img < imgcost) {
+				document.getElementById("bimgupg2").style.color = "grey";
+			} else {
+				document.getElementById("bimgupg2").style.color = "black";
+			};
+			
+			//Make Sound Stuff hidden/visible
+			if (sndupg > 0) {document.getElementById("unl1").innerHTML = "Upgrade Music"};
+			if (sndupg > 0) {
+				document.getElementById("bimgupg2").style.visibility = 'visible';
+				document.getElementById("bsndclear").style.visibility = 'visible';
+				document.getElementById("bsndmet").style.visibility = 'visible';
+			} else {
+				document.getElementById("bimgupg2").style.visibility = 'hidden';
+				document.getElementById("bsndclear").style.visibility = 'hidden';
+				document.getElementById("bsndmet").style.visibility = 'hidden';
+			};
+			if (sndupg > 1) {
+				document.getElementById("bsndspeed").style.visibility = 'visible';
+			} else {
+				document.getElementById("bsndspeed").style.visibility = 'hidden';
+			};	
+		};
+		
+		//Draw function
+		function draw(){
+			//Clear text part of canvas
+			ctx.clearRect(805, 2, 218, 628);
+			ctx.fillStyle = "rgb(0, 0, 0)";
+			
+			//Draw new, updated text
+			ctx.font = "16px Georgia";
+			ctx.fillText("生成: " + clickamnt.toFixed(0) + " px", 818, 75);
+			if (autogenvis > 0) {
+				ctx.fillText("速率: " + pps.toFixed(0) + " px / sec", 818, 155);
+				ctx.fillText("成本: " + gencost.toFixed(0) + " px", 818, 185);
+				ctx.fillText("拥有: " + genamnt.toFixed(0), 818, 215);
+			};
+			if (upgvis > 0) {ctx.fillText("成本: " + upgcost.toFixed(0) + " px", 818, 295)};
+			if (sndupg == 0 && img >= (sndcost * 0.65)) {
+				ctx.fillText("成本: " + sndcost.toFixed(0) + " img", 818, 375);
+			} else if (sndupg > 0 && sndupg < 3) {
+				ctx.fillText("成本: " + sndcost.toFixed(0) + " img", 818, 375);
+			} else if (sndupg == 3) {
+				ctx.fillText("成本: 不适用", 818, 375);
+			};
+			if (sndupg > 0 && imgupg < 2) {
+				ctx.fillText("成本: " + imgcost.toFixed(0) + " img", 818, 455)
+			} else if (sndupg > 0 && imgupg > 1) {
+				ctx.fillText("成本: 不适用", 818, 455);	
+			}
+			
+			ctx.font = "19px Georgia";
+			ctx.fillText("图像: " + img.toFixed(0), 818, 505);
+			ctx.fillText("像素: " + pxs.toFixed(0), 818, 565);
+			
+			ctx.font = "16px Georgia";
+			imps = ((pps / 8384));
+			ctx.fillText("图像 / 秒: " + imps.toFixed(2), 818, 530);
+			
+			ctx.font = "12px Georgia";
+			ctx.fillText("作者 Nakazoto", 818, 605);
+			ctx.fillText("上次保存: " + lsvtme, 818, 625);
+			
+			//Draw progress bar
+			ctx.clearRect(144,605,654,19);
+			if (totimg < 68812) {
+				var endx = (654 * totimg) / 68812;
+			} else {
+				var endx = 654;
+			}
+			ctx.fillStyle="rgb(51, 51, 77)";
+			ctx.fillRect(144,606,endx,17);
+			//document.getElementById("totalimage").innerHTML = totimg;
+		};
+		
+		//Create a new seed for Life
+		function newlife() {
+			var x, y, a, r;
+			for (x = 0; x < 256; x++) {
+				lifearray[x] = [];
+				lifearray1[x] = [];
+				for (y = 0; y < 150; y++) {
+					lifearray[x][y] = 0;
+					lifearray1[x][y] = 0;
+				};
+			};
+		
+			x = Math.floor(Math.random() * 255) + 1;
+			y = Math.floor(Math.random() * 149) + 1;
+
+			for (a = 1; a < 50000; a++) {
+
+				r = Math.floor(Math.random() * 8) + 1;
+				if (r == 1) { 
+					lifearray[x+1][y] = 1;
+					x = x + 1;
+				} else if (r == 2) {	
+					if (lifearray[x+1][y-1] == 1) { 
+						x = x + 1;
+						y = y - 1;
+					};
+				} else if (r == 3) {
+					lifearray[x][y-1] = 1;
+					y = y - 1;
+				} else if (r == 4) {
+					if (lifearray[x-1][y-1] == 1) {
+						x = x - 1;
+						y = y - 1;
+					};
+				} else if (r == 5) {
+					lifearray[x-1][y] = 1;
+					x = x - 1;
+				} else if (r == 6) {
+					if (lifearray[x-1][y+1] == 1) { 
+						x = x - 1;
+						y = y + 1;
+					};
+				} else if (r == 7) {
+					lifearray[x][y+1] = 1;
+					y = y + 1;
+				} else if (r == 8) {
+					if (lifearray[x+1][y+1] == 1) { 
+						x = x + 1;
+						y = y + 1;
+					};
+				};
+				
+				if (x >= 132) {x = 131};
+				if (y >= 65) {y = 64};
+				if (x <= 1) {x = 2};
+				if (y <= 1) {y = 2};
+			};
+		};
+		
+		//Draw the Game of Life
+		function gameoflife() {
+			var x, y, cnt;
+			alive = alive + 1;
+			if (aliverule > 0 && alive > 70) {
+				alive = 0;
+				aliverule = aliverule * -1;
+			};
+			if (aliverule < 0 && alive > 120) {
+				alive = 0;
+				aliverule = aliverule * -1;
+			};
+			
+			for (x = 1; x < 132; x++) {
+				for (y = 1; y < 65; y++) {
+					lifearray1[x][y] = lifearray[x][y];
+				};
+			};	
+			
+			for (x = 1; x < 132; x++) {
+				for (y = 1; y < 65; y++) {
+					cnt = 0;
+					if (lifearray[x-1][y] == 1) {cnt = cnt + 1};
+					if (lifearray[x-1][y+1] == 1) {cnt = cnt + 1};
+					if (lifearray[x][y+1] == 1) {cnt = cnt + 1};
+					if (lifearray[x+1][y+1] == 1) {cnt = cnt + 1};
+					if (lifearray[x+1][y] == 1) {cnt = cnt + 1};
+					if (lifearray[x+1][y-1] == 1) {cnt = cnt + 1};
+					if (lifearray[x][y-1] == 1) {cnt = cnt + 1};
+					if (lifearray[x-1][y-1] == 1) {cnt = cnt + 1};
+					
+					if (lifearray[x][y] == 1) {
+						if (rule == 1) {if (cnt < 2 || cnt > 3) {lifearray1[x][y] = 2}};  // 23/3
+						if (rule == 2) {if (cnt == 2 || cnt == 4 || cnt == 6 || cnt == 7) {lifearray1[x][y] = 2}};  // 01358/357   USE THIS ONE
+						if (rule == 3) {if (cnt < 2 || cnt > 4) {lifearray1[x][y] = 2}};  // 234/3
+						if (rule == 4) {if (cnt == 1 || cnt == 4) {lifearray1[x][y] = 2}};  // 235678/3678
+						if (rule == 5) {if (cnt == 1 || cnt == 3 || cnt > 5) {lifearray1[x][y] = 2}};  // 245/3   (Slow death   120 to death)   USE THIS ONE
+						if (rule == 6) {if (cnt < 2 || cnt > 3) {lifearray1[x][y] = 2}};  // 23/36
+						if (rule == 7) {if (cnt < 4 || cnt > 6) {lifearray1[x][y] = 2}};  // 456/35678   (Slow growth  70 to full)
+						if (rule == 8) {
+							if (aliverule > 0) {if (cnt < 2 || cnt > 4) {lifearray1[x][y] = 2}};
+							if (aliverule < 0) {if (cnt < 2 || cnt > 3) {lifearray1[x][y] = 2}};
+						};
+						
+					} else if (lifearray[x][y] != 1) {
+						if (rule == 1) {if (cnt == 3) {lifearray1[x][y] = 1}};  // 2/3
+						if (rule == 2) {if (cnt == 3 || cnt == 5 || cnt == 7) {lifearray1[x][y] = 1}};  // 1358/357
+						if (rule == 3) {if (cnt == 3) {lifearray1[x][y] = 1}};  // 234/3
+						if (rule == 4) {if (cnt == 3 || cnt == 7 || cnt == 8) {lifearray1[x][y] = 1}};  // 235678/378
+						if (rule == 5) {if (cnt == 3) {lifearray1[x][y] = 1}};  // 245/3    (Slow death  120 to death)
+						if (rule == 6) {if (cnt == 3 || cnt == 6) {lifearray1[x][y] = 1}};  // 23/36
+						if (rule == 7) {if (cnt == 3 || cnt > 4) {lifearray1[x][y] = 1}};  // 456/35678   (Slow growth  70 to full)
+						if (rule == 8) {
+							if (aliverule > 0) {if (cnt == 3) {lifearray1[x][y] = 1}};
+							if (aliverule < 0) {if (cnt == 3) {lifearray1[x][y] = 1}};
+						};
+					};
+				};
+			};
+			
+			for (x = 1; x < 132; x++) {
+				for (y = 1; y < 65; y++) {
+					lifearray[x][y] = lifearray1[x][y];
+				};
+			};	
+
+			ctx.clearRect(3,3,798,390);	
+			for (x = 1; x < 132; x++) {
+				for (y = 1; y < 65; y++) {
+					if (lifearray[x][y] == 3) {
+						ctx.fillStyle = "rgb(195, 171, 125)";
+						ctx.fillRect(x*6, y*6, 6, 6)
+						lifearray[x][y] = 0;
+					} else if (lifearray[x][y] == 2) {
+						ctx.fillStyle = "rgb(175, 129, 50)";
+						ctx.fillRect(x*6, y*6, 6, 6)
+						lifearray[x][y] = 3;
+					} else if (lifearray[x][y] == 1) {
+						ctx.fillStyle = "rgb(150, 98, 0)";
+						ctx.fillRect(x*6, y*6, 6, 6)
+					} else {
+						ctx.fillStyle = "rgb(228, 226, 214)";
+						ctx.fillRect(x*6, y*6, 6, 6)				
+					};
+				};
+			};
+		};
+		
+		//Draw the fractal
+		function drawfrac(){
+			var px, py, x0, y0, x, y, iteration, max_iteration;
+			var xtemp, r, g, b, temp, tempc, arrcnt;
+
+			arrcnt = 0;
+			pixarrcnt = 0;
+			pxsold = pxs;
+			
+			nx = nx + multx;
+			ny = ny + multy;
+			if (nx >= 1.7) {multx = dn};
+			if (nx <= 0) {multx = up};
+			if (ny >= 0.6) {multy = dn};
+			if (ny <= 0) {multy = up};
+			
+			for (py = 1; py < 65; py++) {
+				for (px = 1; px < 132; px++) {
+					x0 = (((px - 1) * (1 - (-2.5))) / (133 - 1)) + (-2.5);
+					y0 = (((py - 1) * (1 - (-1))) / (66 - 1)) + (-1);
+					x = nx
+					y = ny
+					iteration = 0;
+					max_iteration = 100;
+					while ((x * x) + (y * y) < (2 * 2)  &&  iteration < max_iteration) {
+						xtemp = (x * x) - (y * y) + x0;
+						y = (2 * x * y) + y0;
+						x = xtemp;
+						iteration = iteration + 1;
+					};
+					temp = Math.round((((iteration - 1) * (15000 - 1000)) / (100 - 1)) + 1000) / 100;
+					
+					//Calculate Red color
+					if (temp <= 66) {
+						if (colorset > 0) {r = 150};//255;
+						if (colorset < 0) {r = 15};
+					} else {
+						tempc = temp - 60;
+						tempc = 329.698727446 * (Math.pow(tempc, -0.1332047592));
+						r = Math.round(tempc);
+						if (r < 0) {r = 0};
+						if (r > 255) {r = 255};
+					};
+					
+					//Calculate green color
+					if (temp <= 66) {
+						tempc = temp;
+						tempc = (99.4708025861 * Math.log(tempc)) - 161.1195681661;
+						g = Math.round(tempc);
+						if (g < 0) {g = 0};
+						if (g > 255) {g = 255};
+					} else {
+						tempc = temp - 60;
+						tempc = 288.1221695283 * (Math.pow(g, -0.0755148492));
+						g = Math.round(tempc);
+						if (g < 0) {g = 0};
+						if (g > 255) {g = 255};
+					};
+					
+					//Calculate blue
+					if (temp >= 66) {
+						b = 255;
+					} else if (temp <= 19) {
+						b = 0;
+					} else {
+						tempc = temp - 10;
+						tempc = (138.5177312231 * Math.log(tempc)) - 305.0447927307;
+						b = Math.round(tempc);
+						if (b < 0) {b = 0};
+						if (b > 255) {b = 255};
+					};
+					
+					//Pop into array if below ppslimit, else just draw it
+					if (pps < ppslimit) {
+						fracdata = {
+							pxo: px,
+							pyo: py,
+							ro: r,
+							go: g,
+							bo: b,
+						};
+						fracarray[arrcnt] = JSON.stringify(fracdata);
+						arrcnt = arrcnt + 1;
+					} else {
+						if ((r + g + b) != pixarray[pixarrcnt]) {
+							ctx.fillStyle = "rgb(" + r + ", " + g + ", " + b + ")";
+							ctx.fillRect(px*6, py*6, 6, 6);
+							pixarray[pixarrcnt] = r + g + b;
+						};
+						pixarrcnt = pixarrcnt + 1;
+					};
+				};
+			};			
+		};
+		
+		//Used to draw individual pixels below ppslimit
+		function drawpixels() {
+			var cnt, px1, py1, r1, g1, b1;
+			Math.round(pxsold);
+			Math.round(pxsnew);
+			for (cnt = pxsold; cnt < pxsnew; cnt++) {
+				var fracdata1 = JSON.parse(fracarray[pixnum])
+				px1 = fracdata1.pxo;
+				py1 = fracdata1.pyo;
+				r1 = fracdata1.ro;
+				g1 = fracdata1.go;
+				b1 = fracdata1.bo;
+				
+				ctx.fillStyle = "rgb(" + r1 + ", " + g1 + ", " + b1 + ")";
+				ctx.fillRect(px1*6, py1*6, 6, 6);
+				
+				pixnum = pixnum + 1;
+				if (pixnum >= fracarray.length) {
+					drawfrac();
+					pixnum = 0;
+					img = img + 1;
+					totimg = totimg + 1;
+				};
+				pxsold = pxs;
+			};
+		};
+		
+		function autosave() {
+			var relaxsave = {
+				ppso: pps,
+				pxso: pxs,
+				imgo: img,
+				autogenviso: autogenvis,
+				upgviso: upgvis,
+				genamnto: genamnt,
+				upgamnto: upgamnt,
+				genbaseo: genbase,
+				upgbaseo: upgbase,
+				gencosto: gencost,
+				upgcosto: upgcost,
+				clickamnto: clickamnt,
+				sndupgo: sndupg,
+				sndcosto: sndcost,
+				imgupgo: imgupg,
+				imgcosto: imgcost,
+				totimgo: totimg,
+			};
+			localStorage.removeItem("relaxsave")
+			localStorage.setItem("relaxsave",JSON.stringify(relaxsave));
+			svcnt = 0;
+			var dte = new Date();
+			lsvtme = ("0"+dte.getHours()).slice(-2) + ":" + ("0"+dte.getMinutes()).slice(-2) + ":" + ("0"+dte.getSeconds()).slice(-2);
+		};
+		
+		//Draw boxes for pentatonic scale sound generator
+		function drawaudio() {
+			var boxx, boxy, uplim;
+			ctx.clearRect(3, 394, 798, 198);
+			if (sndupg == 1) {
+				uplim = 189			//8 boxes
+			} else if (sndupg == 2) {
+				uplim = 381			//16 boxes
+			} else if (sndupg == 3) {
+				uplim = 765			//32 boxes
+			};
+
+			if (sndupg > 0) {
+				for (boxx = 21; boxx < uplim + 1; boxx = boxx + 24) {
+					for (boxy = 476; boxy < 572+ 1; boxy = boxy + 24) {
+						ctx.strokeRect(boxx, boxy, 18, 18);
+					};
+				};
+			};
+		};
+		
+		//Actually play the sound
+		function beep(duration, frequency, volume, type) {
+
+			var gainNode = context.createGain();
+			var oscillator;
+
+			gainNode.connect(context.destination);
+
+			oscillator = context.createOscillator();
+			oscillator.connect(gainNode);
+			gainNode.gain.setValueAtTime(1, context.currentTime);
+			
+			if (volume){gainNode.gain.value = volume;};
+			if (frequency){oscillator.frequency.value = frequency;};
+			oscillator.type = 'triangle';
+			
+			oscillator.start();
+			
+			gainNode.gain.setValueAtTime(gainNode.gain.value, context.currentTime);
+			gainNode.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 1);
+			setTimeout(function(){oscillator.stop()}, (duration ? duration : 500));
+		};
+		
+		//Pick the tone and then play the sound
+		function play() {
+			var uplim;
+			if (sndupg > 0) {
+				if (sndupg == 1) {
+					uplim = 7;			//8 boxes
+				} else if (sndupg == 2) {
+					uplim = 15;			//16 boxes
+				} else if (sndupg == 3) {
+					uplim = 31;			//32 boxes
+				};
+
+				sndcnt = sndcnt + 1;
+				if (sndcntbig > uplim) {sndcntbig = 0}
+				if (sndcnt >= sndspd) {
+					var digit;
+					digit = soundarray[sndcntbig].toString();
+					if (digit.charAt(digit.length - 1) == '1') {beep(500, 466, 0.25)};
+					if (digit.charAt(digit.length - 1) == '2') {beep(500, 233, 0.25)};
+					
+					if (digit.charAt(digit.length - 2) == '1') {beep(500, 392, 0.25)};
+					if (digit.charAt(digit.length - 2) == '2') {beep(500, 196, 0.25)};
+					
+					if (digit.charAt(digit.length - 3) == '1') {beep(500, 349, 0.25)};
+					if (digit.charAt(digit.length - 3) == '2') {beep(500, 174, 0.25)};
+					
+					if (digit.charAt(digit.length - 4) == '1') {beep(500, 311, 0.25)};
+					if (digit.charAt(digit.length - 4) == '2') {beep(500, 155, 0.25)};
+					
+					if (digit.charAt(digit.length - 5) == '1') {beep(500, 261, 0.25)};
+					if (digit.charAt(digit.length - 5) == '2') {beep(500, 130, 0.25)};
+
+					//Draw the metronome thing
+					if (metro == 1) {
+						ctx.clearRect(6, 448, 794, 26);
+						ctx.fillRect(((sndcntbig + 1) * 24), 456, 18, 12);
+					};
+					sndcnt = 0;
+					sndcntbig = sndcntbig + 1;
+				};
+			};
+		};
+		
+		//Check which sound boxes have been clicked
+		function sndclick(event, backCanvas) {
+			var xpos = 0;
+			var ypos = 0;
+			var boxx, boxy, uplim;
+			var arrcntr = 0;
+			var rect = backCanvas.getBoundingClientRect();
+			xpos = event.clientX - rect.left;
+			ypos = event.clientY - rect.top;
+			
+			if (sndupg == 1) {
+				uplim = 189			//8 boxes
+			} else if (sndupg == 2) {
+				uplim = 381			//16 boxes
+			} else if (sndupg == 3) {
+				uplim = 765			//32 boxes
+			};
+			
+			if (sndupg > 0) {
+				for (boxx = 21; boxx < uplim + 1; boxx = boxx + 24) {
+					for (boxy = 476; boxy < 573; boxy = boxy + 24) {
+						if (xpos >= boxx && xpos <= boxx + 18 && ypos >= boxy && ypos <= boxy + 18) {
+							var digit;
+							if (boxy >= 476 && boxy <= 494) {
+								digit = soundarray[arrcntr].toString();
+								digit = digit.charAt(digit.length - 1);
+								if (digit == '0') {
+									ctx.fillStyle="rgb(150, 150, 150)";
+									ctx.fillRect(boxx, boxy, 18, 18);
+									soundarray[arrcntr] = soundarray[arrcntr] + 1;
+								} else if (digit == '1') {
+									ctx.fillStyle="rgb(15, 15, 15)";
+									ctx.fillRect(boxx, boxy, 18, 18);
+									soundarray[arrcntr] = soundarray[arrcntr] + 1;
+								} else if (digit == '2') {
+									ctx.clearRect(boxx-1, boxy-1, 19, 19);
+									ctx.strokeRect(boxx, boxy, 18, 18);
+									soundarray[arrcntr] = soundarray[arrcntr] - 2;
+								};
+							} else if (boxy >= 500 && boxy <= 518) {
+								digit = soundarray[arrcntr].toString();
+								digit = digit.charAt(digit.length - 2);
+								if (digit == '0') {
+									ctx.fillStyle="rgb(150, 150, 150)";
+									ctx.fillRect(boxx, boxy, 18, 18);
+									soundarray[arrcntr] = soundarray[arrcntr] + 10;
+								} else if (digit == '1') {
+									ctx.fillStyle="rgb(15, 15, 15)";
+									ctx.fillRect(boxx, boxy, 18, 18);
+									soundarray[arrcntr] = soundarray[arrcntr] + 10;
+								} else if (digit == '2') {
+									ctx.clearRect(boxx-1, boxy-1, 19, 19);
+									ctx.strokeRect(boxx, boxy, 18, 18);
+									soundarray[arrcntr] = soundarray[arrcntr] - 20;
+								};
+							} else if (boxy >= 524 && boxy <= 542) {
+								digit = soundarray[arrcntr].toString();
+								digit = digit.charAt(digit.length - 3);
+								if (digit == '0') {
+									ctx.fillStyle="rgb(150, 150, 150)";
+									ctx.fillRect(boxx, boxy, 18, 18);
+									soundarray[arrcntr] = soundarray[arrcntr] + 100;
+								} else if (digit == '1') {
+									ctx.fillStyle="rgb(15, 15, 15)";
+									ctx.fillRect(boxx, boxy, 18, 18);
+									soundarray[arrcntr] = soundarray[arrcntr] + 100;
+								} else if (digit == '2') {
+									ctx.clearRect(boxx-1, boxy-1, 19, 19);
+									ctx.strokeRect(boxx, boxy, 18, 18);
+									soundarray[arrcntr] = soundarray[arrcntr] - 200;
+								};
+							} else if (boxy >= 548 && boxy <= 566) {
+								digit = soundarray[arrcntr].toString();
+								digit = digit.charAt(digit.length - 4);
+								if (digit == '0') {
+									ctx.fillStyle="rgb(150, 150, 150)";
+									ctx.fillRect(boxx, boxy, 18, 18);
+									soundarray[arrcntr] = soundarray[arrcntr] + 1000;
+								} else if (digit == '1') {
+									ctx.fillStyle="rgb(15, 15, 15)";
+									ctx.fillRect(boxx, boxy, 18, 18);
+									soundarray[arrcntr] = soundarray[arrcntr] + 1000;
+								} else if (digit == '2') {
+									ctx.clearRect(boxx-1, boxy-1, 19, 19);
+									ctx.strokeRect(boxx, boxy, 18, 18);
+									soundarray[arrcntr] = soundarray[arrcntr] - 2000;
+								};
+							} else if (boxy >= 572 && boxy <= 590) {
+								digit = soundarray[arrcntr].toString();
+								digit = digit.charAt(digit.length - 5);
+								if (digit == '0') {
+									ctx.fillStyle="rgb(150, 150, 150)";
+									ctx.fillRect(boxx, boxy, 18, 18);
+									soundarray[arrcntr] = soundarray[arrcntr] + 10000;
+								} else if (digit == '1') {
+									ctx.fillStyle="rgb(15, 15, 15)";
+									ctx.fillRect(boxx, boxy, 18, 18);
+									soundarray[arrcntr] = soundarray[arrcntr] + 10000;
+								} else if (digit == '2') {
+									ctx.clearRect(boxx-1, boxy-1, 20, 20);
+									ctx.strokeRect(boxx, boxy, 18, 18);
+									soundarray[arrcntr] = soundarray[arrcntr] - 20000;
+								};
+							};
+							
+						};
+					};
+					arrcntr = arrcntr + 1;
+				};
+			};
+		};
+		
+		//Main loop
+		var mainloop = function() {
+			update();
+			cansee();
+			draw();
+			play();
+		}; 
+		setInterval(mainloop, 16);
+		
+	</script>
+<!--客服 开始-->
+<script src="//g8hh.github.io/static/js/jquery.min.js"></script>
+<link rel="stylesheet" href="//g8hh.github.io/static/css/kf.css" type="text/css" media="screen" charset="utf-8">
+<script src="//g8hh.github.io/static/js/kf.js"></script>
+<!-- 客服 结束 -->
+<!--站长统计-->
+    <div style="display: none">
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?828597e93cee632465679b7ef35edfd5";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>    </div>
+</body>
+</html>
